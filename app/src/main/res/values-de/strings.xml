@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">WLAN-Gastzugang</string>
+    <string name="action_settings">Einstellungen</string>
+    <string name="enc_summary">Verschlüsselung des Gastzuganges festlegen</string>
+    <string name="enc_title">Verschlüsselung</string>
+    <string name="key_summary">Netzwerkschlüssel zur Verschlüsselung des Gastzuganges</string>
+    <string name="key_title">Netzwerkschlüssel</string>
+    <string name="random_summary">Bei jedem Start des Gästenetzes einen neuen, zufälligen Schlüssel verwenden</string>
+    <string name="random_title">Zufälligen Schlüssel verwenden</string>
+    <string name="limited_summary">Im Gastnetz nur Surfen und Mailen erlaubt</string>
+    <string name="limited_title">Eingeschränkter Zugang</string>
+    <string name="comm_summary">Geräte im Gastnetz dürfen untereinander kommunizieren</string>
+    <string name="comm_title">Untereinander kommunizieren</string>
+    <string name="hint_ssid">WiFi-SSID</string>
+    <string name="hint_key">WiFi-Passwort</string>
+    <string name="enable">Gastzugang aktivieren</string>
+    <string name="disable">Gastzugang deaktivieren</string>
+    <string name="pw_too_short">Passwort zu kurz - wird mit Zufall aufgefüllt</string>
+    <string name="scan_to_connect">Scanne diesen Code von einem Android Gerät um dich zum Gastnetzwerk zu verbinden</string>
+    <string name="reading_config">Lese Konfiguration</string>
+    <string name="please_wait">Bitte warten...</string>
+    <string name="save_login">Login-Daten speichern</string>
+    <string name="user_hint">Fritz!Box Benutzername</string>
+    <string name="pw_text">Authentifizierung zum Fritz!Box Login benötigt. Bitte gebe die Login-Daten eines Fritz!Box Accounts an, welcher die WLAN-Einstellungen ändern kann. Das Feld für den Benutzernamen kann leer bleiben, wenn auf der Fritz!Box keine Accounts eingerichtet wurden</string>
+    <string name="pw_hint">Fritz!Box Passwort</string>
+    <string name="blocked">Der Fritz!Box Login ist wegen zu vielen fehlerhaften Loginversuchen für die nächsten %d Sekunden blockiert</string>
+    <string name="read_config">Fritz!Box Konfiguration auslesen</string>
+    <string name="not_connected">Zu keiner Fritz!Box verbunden!\nBitte verbinde dich mit dem WLAN-Netzwerk deiner Fritz!Box, um den Zustand des Gastzuganges lesen und ändern zu können</string>
+    <string name="trial">App läuft im Test-Modus - WLAN Name (SSID) und Passwort können nicht geändert werden. Klicke hier um die Vollversion zu kaufen</string>
+    <string name="connect_license">Verbindung zum Lizenz-Server kann nicht hergestellt werden, bitte versuche es später erneut</string>
+    <string name="delete_login_summary">Lösche alle gespeicherten Fritz!Box Login-Daten</string>
+    <string name="delete_login_title">Login-Daten löschen</string>
+    <string name="error_no_fritzbox">Fritz!Box nicht gefunden. Bitte stelle sicher das du mit diesem Gerät zum privaten Fritz!Box WLAN-Netz verbunden bist</string>
+    <string name="error_unsupported_version">Login Seite nicht gefunden - die Fritz!Box Software Version wird vermutlich nicht unterstützt</string>
+    <string name="help">Hilfe</string>
+    <string name="guest_settings_not_found">Gastzugang-Einstellungen nicht gefunden - bitte stelle sicher das deine Fritz!Box diese Funktion unterstützt und kontaktiere mich, wenn dem so ist</string>
+</resources>
