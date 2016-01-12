@@ -23,6 +23,7 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.text.Html;
+import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -200,6 +201,7 @@ public class MainFragment extends Fragment {
         save.setChecked(
                 PreferenceManager.getDefaultSharedPreferences(getActivity()).contains("fb_pw"));
         pw.setText(FRITZBOX_PW);
+        pw.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         user.setText(FRITZBOX_USER);
         loginCredentials = new AlertDialog.Builder(getActivity()).setView(v)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -352,7 +354,8 @@ public class MainFragment extends Fragment {
                         }
                         parameters.put("activate_guest_access", "on");
                         parameters.put("guest_ssid", wifi_ssid);
-                        parameters.put("sec_mode", String.valueOf(prefs.getInt("wifi_security", 3)));
+                        parameters
+                                .put("sec_mode", String.valueOf(prefs.getInt("wifi_security", 3)));
                         parameters.put("wpa_key", key);
                         if (prefs.getBoolean("wifi_limited_access", true))
                             parameters.put("group_access", "on");
@@ -383,7 +386,8 @@ public class MainFragment extends Fragment {
                     //                    <option value="1080" >18 Stunden</option>
                     //                    <option value="1260" >21 Stunden</option>
 
-                    if (!postData("http://fritz.box/wlan/guest_access.lua?sid=" + SID, parameters)) {
+                    if (!postData("http://fritz.box/wlan/guest_access.lua?sid=" + SID,
+                            parameters)) {
                         h.post(new Runnable() {
                             @Override
                             public void run() {
