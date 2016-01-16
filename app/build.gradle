@@ -19,6 +19,11 @@ android {
             signingConfig signingConfigs.release
         }
     }
+
+    productFlavors {
+        play
+        fdroid
+    }
 }
 
 dependencies {
