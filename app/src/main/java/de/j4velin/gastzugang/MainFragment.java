@@ -38,7 +38,6 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.text.Html;
-import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -52,6 +51,7 @@ import android.widget.TextView;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.android.encode.QRCodeEncoder;
+import com.maksim88.passwordedittext.PasswordEditText;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -216,7 +216,6 @@ public class MainFragment extends Fragment {
         save.setChecked(
                 PreferenceManager.getDefaultSharedPreferences(getActivity()).contains("fb_pw"));
         pw.setText(FRITZBOX_PW);
-        pw.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         user.setText(FRITZBOX_USER);
         loginCredentials = new AlertDialog.Builder(getActivity()).setView(v)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
