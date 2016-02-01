@@ -93,7 +93,7 @@ public class Parser {
                 skip(parser);
             }
         }
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG,
+        if (BuildConfig.DEBUG) android.util.Log.d(MainFragment.TAG,
                 "returning logininfo " + sid + " / " + challenged + " / " + block);
         return new LoginEntry(sid, challenged, Integer.valueOf(block));
     }
@@ -107,7 +107,7 @@ public class Parser {
             parser.nextTag();
         }
         parser.require(XmlPullParser.END_TAG, null, tag);
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG,
+        if (BuildConfig.DEBUG) android.util.Log.d(MainFragment.TAG,
                 "tag read: original: " + result + " fromHtml: " + Html.fromHtml(result).toString());
         return Html.fromHtml(result).toString();
     }

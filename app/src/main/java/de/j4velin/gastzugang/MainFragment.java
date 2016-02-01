@@ -51,7 +51,6 @@ import android.widget.TextView;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.android.encode.QRCodeEncoder;
-import com.maksim88.passwordedittext.PasswordEditText;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -76,6 +75,8 @@ import java.util.Random;
 
 public class MainFragment extends Fragment {
 
+    public final static String TAG = "Gastzugang";
+    public static boolean PRO_VERSION = BuildConfig.FLAVOR.equals("fdroid");
     private boolean currently_enabled = false;
     static String SID;
     static String FRITZBOX_PW, FRITZBOX_USER, FRITZBOX_ADDRESS;
@@ -100,8 +101,7 @@ public class MainFragment extends Fragment {
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(final Context context, final Intent intent) {
-            if (BuildConfig.DEBUG)
-                android.util.Log.d(MainActivity.TAG, "WiFi change: " + intent.getAction());
+            if (BuildConfig.DEBUG) android.util.Log.d(TAG, "WiFi change: " + intent.getAction());
             if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())) {
                 NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (!wifiCurrentlyConnected && info.isConnected()) {
@@ -135,7 +135,7 @@ public class MainFragment extends Fragment {
                 new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
         if (wifiCurrentlyConnected) {
             if (BuildConfig.DEBUG)
-                android.util.Log.d(MainActivity.TAG, "WiFi is currently connected -> readState");
+                android.util.Log.d(TAG, "WiFi is currently connected -> readState");
             setError(null);
             readState();
         } else {
@@ -184,7 +184,7 @@ public class MainFragment extends Fragment {
             }
         });
 
-        if (MainActivity.PRO_VERSION) {
+        if (PRO_VERSION) {
             v.findViewById(R.id.nag).setVisibility(View.GONE);
         } else {
             v.findViewById(R.id.nag).setOnClickListener(new View.OnClickListener() {
@@ -204,7 +204,7 @@ public class MainFragment extends Fragment {
 
     void purchased() {
         getView().findViewById(R.id.nag).setVisibility(View.GONE);
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG, "purchased");
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "purchased");
     }
 
     private void askForLogin() {
@@ -248,7 +248,7 @@ public class MainFragment extends Fragment {
     }
 
     private void blocked(final int time) {
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG, "blocked " + time);
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "blocked " + time);
         final Handler h = new Handler();
         if (pg != null && pg.isShowing()) pg.dismiss();
         pg = new ProgressDialog(getActivity());
@@ -277,22 +277,22 @@ public class MainFragment extends Fragment {
     }
 
     private void updateState() {
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG, "updateState " + currentConfig);
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "updateState " + currentConfig);
         image.setVisibility(currently_enabled ? View.VISIBLE : View.GONE);
         scanToConnect.setVisibility(currently_enabled ? View.VISIBLE : View.GONE);
         ssid.setEnabled(!currently_enabled);
         key.setEnabled(!currently_enabled);
         if (currentConfig != null) {
-            if (MainActivity.PRO_VERSION) {
+            if (PRO_VERSION) {
                 ssid.setText(currentConfig.ssid);
                 key.setText(currentConfig.key);
             }
             if (currently_enabled) {
                 setQrCode(currentConfig.toString());
-                Notification.Builder b =
-                        new Notification.Builder(getActivity()).setContentTitle("Guest-WiFi active")
-                                .setContentText(currentConfig.ssid + " - " + currentConfig.key)
-                                .setSmallIcon(R.drawable.ic_icon).setContentIntent(PendingIntent
+                Notification.Builder b = new Notification.Builder(getActivity())
+                        .setContentTitle(getActivity().getString(R.string.guest_wifi_active))
+                        .setContentText(currentConfig.ssid + " - " + currentConfig.key)
+                        .setSmallIcon(R.drawable.ic_icon).setContentIntent(PendingIntent
                                 .getActivity(getActivity(), 0,
                                         new Intent(getActivity(), MainActivity.class)
                                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -327,12 +327,12 @@ public class MainFragment extends Fragment {
     }
 
     private void changeWiFi(final boolean enable) {
-        if (BuildConfig.DEBUG) Log.d(MainActivity.TAG, "change wifi");
+        if (BuildConfig.DEBUG) Log.d(TAG, "change wifi");
         pg = new ProgressDialog(getActivity());
         pg.setMessage(getString(R.string.please_wait));
         pg.show();
         final Handler h = new Handler();
-        if (!MainActivity.PRO_VERSION) {
+        if (!PRO_VERSION) {
             this.ssid.setText("Hotspot");
             this.key.setText("swordfish");
         }
@@ -364,7 +364,7 @@ public class MainFragment extends Fragment {
                             }
                         }
                         if (BuildConfig.DEBUG) {
-                            Log.d(MainActivity.TAG, "enabling network " + wifi_ssid + " " + key);
+                            Log.d(TAG, "enabling network " + wifi_ssid + " " + key);
                         }
                         parameters.put("activate_guest_access", "on");
                         parameters.put("guest_ssid", wifi_ssid);
@@ -376,7 +376,7 @@ public class MainFragment extends Fragment {
                         if (prefs.getBoolean("wifi_communicate", false))
                             parameters.put("user_isolation", "on");
                     } else if (BuildConfig.DEBUG) {
-                        Log.d(MainActivity.TAG, "disabling network");
+                        Log.d(TAG, "disabling network");
                     }
                     // automatisch deaktivieren:
                     //                    <input type="checkbox" id="uiViewDownTimeActiv" name="down_time_activ" onclick="onDownTimerActiv()" >
@@ -400,7 +400,8 @@ public class MainFragment extends Fragment {
                     //                    <option value="1080" >18 Stunden</option>
                     //                    <option value="1260" >21 Stunden</option>
 
-                    if (!postData("http://fritz.box/wlan/guest_access.lua?sid=" + SID,
+                    if (!postData(
+                            "http://" + FRITZBOX_ADDRESS + "/wlan/guest_access.lua?sid=" + SID,
                             parameters)) {
                         h.post(new Runnable() {
                             @Override
@@ -426,7 +427,7 @@ public class MainFragment extends Fragment {
 
     private boolean postData(final String requestURL, final HashMap<String, String> postDataParams) {
         URL url;
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG, "post data to: " + requestURL);
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "post data to: " + requestURL);
         int responseCode = -1;
         try {
             url = new URL(requestURL);
@@ -446,8 +447,7 @@ public class MainFragment extends Fragment {
             writer.close();
             os.close();
             responseCode = conn.getResponseCode();
-            if (BuildConfig.DEBUG)
-                android.util.Log.d(MainActivity.TAG, "response code: " + responseCode);
+            if (BuildConfig.DEBUG) android.util.Log.d(TAG, "response code: " + responseCode);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -490,8 +490,8 @@ public class MainFragment extends Fragment {
 
     private Parser.LoginEntry getLogin() {
         String url = FRITZBOX_USER != null && FRITZBOX_USER.length() > 0 ?
-                "http://fritz.box/login_sid.lua?username=" + FRITZBOX_USER :
-                "http://fritz.box/login_sid.lua";
+                "http://" + FRITZBOX_ADDRESS + "/login_sid.lua?username=" + FRITZBOX_USER :
+                "http://" + FRITZBOX_ADDRESS + "/login_sid.lua";
         try {
             return getLogin(new URL(url));
         } catch (final Exception e) {
@@ -516,35 +516,35 @@ public class MainFragment extends Fragment {
 
     private Parser.LoginEntry getLogin(final URL url) throws IOException, XmlPullParserException,
             NoSuchAlgorithmException {
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG, "getting login from " + url);
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "getting login from " + url);
         Parser p = new Parser();
         InputStream in = url.openStream();
         List<Parser.Entry> entries = p.parse(in);
         in.close();
-        if (BuildConfig.DEBUG)
-            android.util.Log.d(MainActivity.TAG, "read entries: " + entries.size());
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "read entries: " + entries.size());
         Parser.LoginEntry login = null;
         for (int i = 0; i < entries.size() && login == null; i++) {
             if (entries.get(i) instanceof Parser.LoginEntry) {
                 login = (Parser.LoginEntry) entries.get(0);
             }
         }
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG, "login: " + login);
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "login: " + login);
         if (login.sid.equals("0000000000000000")) {
             if (url.toString().contains("response") || FRITZBOX_PW == null ||
                     FRITZBOX_PW.length() < 1) return login;
             String user = FRITZBOX_USER != null && FRITZBOX_USER.length() > 0 ?
                     "?username=" + FRITZBOX_USER + "&" : "?";
-            return getLogin(new URL("http://fritz.box/login_sid.lua" + user + "response=" +
-                    login.challenge + "-" +
-                    Util.md5(login.challenge + "-" + FRITZBOX_PW)));
+            return getLogin(
+                    new URL("http://" + FRITZBOX_ADDRESS + "/login_sid.lua" + user + "response=" +
+                            login.challenge + "-" +
+                            Util.md5(login.challenge + "-" + FRITZBOX_PW)));
         } else {
             return login;
         }
     }
 
     private void readState() {
-        if (BuildConfig.DEBUG) android.util.Log.d(MainActivity.TAG, "readstate");
+        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "readstate");
         if (pg != null && pg.isShowing()) pg.dismiss();
         pg = new ProgressDialog(getActivity());
         pg.setTitle(R.string.reading_config);
@@ -556,7 +556,7 @@ public class MainFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    if (BuildConfig.DEBUG) Log.d(MainActivity.TAG, "reading current state");
+                    if (BuildConfig.DEBUG) Log.d(TAG, "reading current state");
                     if (SID == null) {
                         final Parser.LoginEntry login = getLogin();
                         if (login == null) return;
@@ -569,8 +569,7 @@ public class MainFragment extends Fragment {
                             }, 500);
                             return;
                         } else if (login.sid.equals("0000000000000000")) {
-                            if (BuildConfig.DEBUG)
-                                Log.d(MainActivity.TAG, "readstate -> askforlogin");
+                            if (BuildConfig.DEBUG) Log.d(TAG, "readstate -> askforlogin");
                             h.post(new Runnable() {
                                 @Override
                                 public void run() {
@@ -583,7 +582,8 @@ public class MainFragment extends Fragment {
                         }
                     }
 
-                    URL url = new URL("http://fritz.box/wlan/guest_access.lua?sid=" + SID);
+                    URL url = new URL("http://" + FRITZBOX_ADDRESS + "/wlan/guest_access.lua?sid=" +
+                            SID);
                     BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
                     String line = br.readLine();
                     String ssid = null, key = null;
@@ -595,22 +595,22 @@ public class MainFragment extends Fragment {
                             guest_wifi_page = true;
                             currently_enabled = line.contains("checked");
                             if (BuildConfig.DEBUG)
-                                Log.d(MainActivity.TAG, "current state: " + currently_enabled);
+                                Log.d(TAG, "current state: " + currently_enabled);
                         } else if (line.contains("name=\"guest_ssid\"")) {
                             ssid = line.substring(line.indexOf("value=\"") + 7,
                                     line.indexOf("\"", line.indexOf("value=\"") + 7));
-                            if (BuildConfig.DEBUG) Log.d(MainActivity.TAG, "current ssid: " + ssid);
+                            if (BuildConfig.DEBUG) Log.d(TAG, "current ssid: " + ssid);
                         } else if (line.contains("name=\"sec_mode\"")) {
                             modeLine = true;
                         } else if (modeLine && line.contains("<option value=") &&
                                 line.contains("selected=\"selected\"")) {
                             mode = Integer.parseInt(line.substring(line.indexOf("\"") + 1,
                                     line.indexOf("\"", line.indexOf("\"") + 1)));
-                            if (BuildConfig.DEBUG) Log.d(MainActivity.TAG, "current mode: " + mode);
+                            if (BuildConfig.DEBUG) Log.d(TAG, "current mode: " + mode);
                         } else if (line.contains("name=\"wpa_key\"")) {
                             key = line.substring(line.indexOf("value=\"") + 7,
                                     line.indexOf("\"", line.indexOf("value=\"") + 7));
-                            if (BuildConfig.DEBUG) Log.d(MainActivity.TAG, "current key: " + key);
+                            if (BuildConfig.DEBUG) Log.d(TAG, "current key: " + key);
                             break;
                         }
                         line = br.readLine();
@@ -620,8 +620,7 @@ public class MainFragment extends Fragment {
                     currentConfig = new WiFiData(Html.fromHtml(ssid).toString(),
                             Html.fromHtml(key).toString(), mode);
 
-                    if (BuildConfig.DEBUG)
-                        Log.d(MainActivity.TAG, "current config: " + currentConfig);
+                    if (BuildConfig.DEBUG) Log.d(TAG, "current config: " + currentConfig);
 
                 } catch (Exception e) {
                     e.printStackTrace();

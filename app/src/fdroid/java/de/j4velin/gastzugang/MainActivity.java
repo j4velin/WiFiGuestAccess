@@ -27,10 +27,6 @@ import android.view.MenuItem;
 
 public class MainActivity extends Activity {
 
-    public final static String TAG = "Gastzugang";
-
-    public static boolean PRO_VERSION = BuildConfig.FLAVOR.equals("fdroid");
-
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
