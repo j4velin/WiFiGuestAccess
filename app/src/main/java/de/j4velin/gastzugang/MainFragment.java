@@ -68,12 +68,24 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 public class MainFragment extends Fragment {
+
+    private final static String KEY_ACTIVATE = "activate_guest_access";
+    private final static String KEY_SSID = "guest_ssid";
+    private final static String KEY_SEC_MODE = "sec_mode";
+    private final static String KEY_PASSWORD = "wpa_key";
+    private final static String KEY_AUTODISABLE = "down_time_activ";
+    private final static String KEY_AUTODISABLE_NOCON = "disconnect_guest_access";
+    private final static String KEY_AUTODISABLE_TIME = "down_time_value";
+    private final static String KEY_PROTOCOL = "push_service";
+    private final static String KEY_ALLOW_COMMUNICATION = "user_isolation";
+    private final static String KEY_ONLY_WEB = "group_access";
 
     public final static String TAG = "Gastzugang";
     public static boolean PRO_VERSION = BuildConfig.FLAVOR.equals("fdroid");
@@ -151,7 +163,8 @@ public class MainFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+                             final Bundle savedInstanceState) {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
@@ -352,6 +365,16 @@ public class MainFragment extends Fragment {
                     final HashMap<String, String> parameters = new HashMap<>(8);
                     parameters.put("apply", "");
                     parameters.put("btnSave", "");
+                    if (currentConfig != null) {
+                        if (currentConfig.protocol) parameters.put(KEY_PROTOCOL, "on");
+                        if (currentConfig.autoDisable) {
+                            parameters.put(KEY_AUTODISABLE, "on");
+                            parameters.put(KEY_AUTODISABLE_TIME,
+                                    String.valueOf(currentConfig.autoDisableTime));
+                            if (currentConfig.autoDisableNoConnection)
+                                parameters.put(KEY_AUTODISABLE_NOCON, "on");
+                        }
+                    }
                     if (enable) {
                         String key;
                         if (prefs.getBoolean("random_key", false)) {
@@ -366,39 +389,21 @@ public class MainFragment extends Fragment {
                         if (BuildConfig.DEBUG) {
                             Log.d(TAG, "enabling network " + wifi_ssid + " " + key);
                         }
-                        parameters.put("activate_guest_access", "on");
-                        parameters.put("guest_ssid", wifi_ssid);
-                        parameters
-                                .put("sec_mode", String.valueOf(prefs.getInt("wifi_security", 3)));
-                        parameters.put("wpa_key", key);
+                        parameters.put(KEY_ACTIVATE, "on");
+                        parameters.put(KEY_SSID, wifi_ssid);
+                        parameters.put(KEY_SEC_MODE,
+                                String.valueOf(prefs.getInt("wifi_security", 3)));
+                        parameters.put(KEY_PASSWORD, key);
                         if (prefs.getBoolean("wifi_limited_access", true))
-                            parameters.put("group_access", "on");
+                            parameters.put(KEY_ONLY_WEB, "on");
                         if (prefs.getBoolean("wifi_communicate", false))
-                            parameters.put("user_isolation", "on");
+                            parameters.put(KEY_ALLOW_COMMUNICATION, "on");
                     } else if (BuildConfig.DEBUG) {
                         Log.d(TAG, "disabling network");
                     }
-                    // automatisch deaktivieren:
-                    //                    <input type="checkbox" id="uiViewDownTimeActiv" name="down_time_activ" onclick="onDownTimerActiv()" >
-                    //                    <label id="uiViewDownTimeActivLabel" for="uiViewDownTimeActiv">automatisch deaktivieren nach</label>
-                    //                    <span id="uiViewDownTimeBox">
-                    //                    <select id="uiViewDownTime" name="down_time_value" size="1">
-                    //                    <option value="15" >15 Minuten</option>
-                    //                    <option value="30" selected="selected">30 Minuten</option>
-                    //                    <option value="45" >45 Minuten</option>
-                    //                    <option value="60" >60 Minuten</option>
-                    //                    <option value="90" >90 Minuten</option>
-                    //                    <option value="120" > 2 Stunden</option>
-                    //                    <option value="180" > 3 Stunden</option>
-                    //                    <option value="240" > 4 Stunden</option>
-                    //                    <option value="300" > 5 Stunden</option>
-                    //                    <option value="360" > 6 Stunden</option>
-                    //                    <option value="480" > 8 Stunden</option>
-                    //                    <option value="600" >10 Stunden</option>
-                    //                    <option value="720" >12 Stunden</option>
-                    //                    <option value="900" >15 Stunden</option>
-                    //                    <option value="1080" >18 Stunden</option>
-                    //                    <option value="1260" >21 Stunden</option>
+
+                    if (BuildConfig.DEBUG)
+                        Log.d(TAG, Arrays.toString(parameters.entrySet().toArray()));
 
                     if (!postData(
                             "http://" + FRITZBOX_ADDRESS + "/wlan/guest_access.lua?sid=" + SID,
@@ -425,7 +430,8 @@ public class MainFragment extends Fragment {
     }
 
 
-    private boolean postData(final String requestURL, final HashMap<String, String> postDataParams) {
+    private boolean postData(final String requestURL,
+                             final HashMap<String, String> postDataParams) {
         URL url;
         if (BuildConfig.DEBUG) android.util.Log.d(TAG, "post data to: " + requestURL);
         int responseCode = -1;
@@ -590,35 +596,52 @@ public class MainFragment extends Fragment {
                     int mode = -1;
                     boolean modeLine = false;
                     boolean guest_wifi_page = false;
+                    boolean autodisable = false;
+                    boolean autodisableNoConnection = false;
+                    int autodisableTime = 0;
+                    boolean timeLine = false;
+                    boolean protocol = false;
                     while (line != null) {
-                        if (line.contains("name=\"activate_guest_access\"")) {
+                        if (line.contains(addNameTag(KEY_ACTIVATE))) {
                             guest_wifi_page = true;
                             currently_enabled = line.contains("checked");
-                            if (BuildConfig.DEBUG)
-                                Log.d(TAG, "current state: " + currently_enabled);
-                        } else if (line.contains("name=\"guest_ssid\"")) {
+                        } else if (line.contains(addNameTag(KEY_SSID))) {
                             ssid = line.substring(line.indexOf("value=\"") + 7,
                                     line.indexOf("\"", line.indexOf("value=\"") + 7));
-                            if (BuildConfig.DEBUG) Log.d(TAG, "current ssid: " + ssid);
-                        } else if (line.contains("name=\"sec_mode\"")) {
+                        } else if (line.contains(addNameTag(KEY_SEC_MODE))) {
                             modeLine = true;
                         } else if (modeLine && line.contains("<option value=") &&
                                 line.contains("selected=\"selected\"")) {
                             mode = Integer.parseInt(line.substring(line.indexOf("\"") + 1,
                                     line.indexOf("\"", line.indexOf("\"") + 1)));
-                            if (BuildConfig.DEBUG) Log.d(TAG, "current mode: " + mode);
-                        } else if (line.contains("name=\"wpa_key\"")) {
+                        } else if (modeLine && line.contains("</select>")) {
+                            modeLine = false;
+                        } else if (line.contains(addNameTag(KEY_PASSWORD))) {
                             key = line.substring(line.indexOf("value=\"") + 7,
                                     line.indexOf("\"", line.indexOf("value=\"") + 7));
-                            if (BuildConfig.DEBUG) Log.d(TAG, "current key: " + key);
-                            break;
+                        } else if (line.contains(addNameTag(KEY_AUTODISABLE))) {
+                            autodisable = line.contains("checked");
+                        } else if (line.contains(addNameTag(KEY_AUTODISABLE_NOCON))) {
+                            autodisableNoConnection = line.contains("checked");
+                        } else if (line.contains(addNameTag(KEY_AUTODISABLE_TIME))) {
+                            timeLine = true;
+                        } else if (timeLine && line.contains("<option value=") &&
+                                line.contains("selected=\"selected\"")) {
+                            autodisableTime = Integer.parseInt(
+                                    line.substring(line.indexOf("\"") + 1,
+                                            line.indexOf("\"", line.indexOf("\"") + 1)));
+                        } else if (timeLine && line.contains("</select>")) {
+                            timeLine = false;
+                        } else if (line.contains(addNameTag(KEY_PROTOCOL))) {
+                            protocol = line.contains("checked");
                         }
                         line = br.readLine();
                     }
                     br.close();
                     if (!guest_wifi_page) SID = null;
                     currentConfig = new WiFiData(Html.fromHtml(ssid).toString(),
-                            Html.fromHtml(key).toString(), mode);
+                            Html.fromHtml(key).toString(), mode, autodisable,
+                            autodisableNoConnection, autodisableTime, protocol);
 
                     if (BuildConfig.DEBUG) Log.d(TAG, "current config: " + currentConfig);
 
@@ -643,6 +666,10 @@ public class MainFragment extends Fragment {
         }).start();
     }
 
+    private String addNameTag(final String key) {
+        return new StringBuilder("name=\"").append(key).append("\"").toString();
+    }
+
     private String getRandomKey(long seed) {
         Random r = new Random(seed);
         char[] re = new char[10];
@@ -655,12 +682,22 @@ public class MainFragment extends Fragment {
 
     private class WiFiData {
         private final String ssid, key;
-        private final int mode;
+        private final int mode, autoDisableTime;
+        private final boolean autoDisable, autoDisableNoConnection, protocol;
 
-        private WiFiData(final String ssid, final String key, final int mode) {
+        private WiFiData(final String ssid, final String key, final int mode,
+                         final boolean autoDisable, final boolean autoDisableNoConnection,
+                         final int autoDisableTime, final boolean protocol) {
             this.ssid = ssid;
             this.key = key;
             this.mode = mode;
+            this.autoDisable = autoDisable;
+            this.autoDisableNoConnection = autoDisableNoConnection;
+            this.autoDisableTime = autoDisableTime;
+            this.protocol = protocol;
+            if (BuildConfig.DEBUG)
+                Log.d(TAG, mode + "," + autoDisable + "," + autoDisableNoConnection + "," +
+                        autoDisableTime + "," + protocol);
         }
 
         @Override
