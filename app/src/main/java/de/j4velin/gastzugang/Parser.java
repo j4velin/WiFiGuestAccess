@@ -76,7 +76,7 @@ public class Parser {
     private LoginEntry readSessionInfo(final XmlPullParser parser) throws XmlPullParserException,
             IOException {
         parser.require(XmlPullParser.START_TAG, null, "SessionInfo");
-        String sid = null, challenged = null, block = null;
+        String sid = null, challenged = null, block = "-1";
         while (parser.next() != XmlPullParser.END_TAG &&
                 (sid == null || challenged == null || block == null)) {
             if (parser.getEventType() != XmlPullParser.START_TAG) {
