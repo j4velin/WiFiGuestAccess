@@ -658,7 +658,7 @@ public class MainFragment extends Fragment {
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    if (pg.isShowing()) {
+                    if (pg != null && pg.isShowing()) {
                         h.post(new Runnable() {
                             @Override
                             public void run() {
@@ -695,7 +695,9 @@ public class MainFragment extends Fragment {
         private final int mode, autoDisableTime;
         private final boolean autoDisable, autoDisableNoConnection, protocol;
 
-        private WiFiData(final String ssid, final String key, final int mode, final boolean autoDisable, final boolean autoDisableNoConnection, final int autoDisableTime, final boolean protocol) {
+        private WiFiData(final String ssid, final String key, final int mode,
+                         final boolean autoDisable, final boolean autoDisableNoConnection,
+                         final int autoDisableTime, final boolean protocol) {
             this.ssid = ssid;
             this.key = key;
             this.mode = mode;
