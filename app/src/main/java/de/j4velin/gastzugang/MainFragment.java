@@ -79,6 +79,8 @@ public class MainFragment extends Fragment {
     private final static String KEY_ACTIVATE = "activate_guest_access";
     private final static String KEY_SSID = "guest_ssid";
     private final static String KEY_SEC_MODE = "sec_mode";
+    private final static String KEY_SEC_DEPRECATED = "wlan_security";
+    private final static String KEY_SEC_MODE_DEPRECATED = "wpa_modus";
     private final static String KEY_PASSWORD = "wpa_key";
     private final static String KEY_AUTODISABLE = "down_time_activ";
     private final static String KEY_AUTODISABLE_NOCON = "disconnect_guest_access";
@@ -391,9 +393,17 @@ public class MainFragment extends Fragment {
                         }
                         parameters.put(KEY_ACTIVATE, "on");
                         parameters.put(KEY_SSID, wifi_ssid);
-                        parameters.put(KEY_SEC_MODE,
-                                String.valueOf(prefs.getInt("wifi_security", 3)));
-                        parameters.put(KEY_PASSWORD, key);
+                        int sec_mode = prefs.getInt("wifi_security", 3);
+                        if (sec_mode == 5) {
+                            // no encryption
+                            parameters.put(KEY_SEC_DEPRECATED, "1");
+                        } else {
+                            parameters.put(KEY_SEC_DEPRECATED, "0");
+                            parameters.put(KEY_SEC_MODE_DEPRECATED, String.valueOf(sec_mode));
+                            parameters.put(KEY_PASSWORD, key);
+                        }
+                        parameters.put(KEY_SEC_MODE, String.valueOf(sec_mode));
+
                         if (prefs.getBoolean("wifi_limited_access", true))
                             parameters.put(KEY_ONLY_WEB, "on");
                         if (prefs.getBoolean("wifi_communicate", false))
@@ -685,9 +695,7 @@ public class MainFragment extends Fragment {
         private final int mode, autoDisableTime;
         private final boolean autoDisable, autoDisableNoConnection, protocol;
 
-        private WiFiData(final String ssid, final String key, final int mode,
-                         final boolean autoDisable, final boolean autoDisableNoConnection,
-                         final int autoDisableTime, final boolean protocol) {
+        private WiFiData(final String ssid, final String key, final int mode, final boolean autoDisable, final boolean autoDisableNoConnection, final int autoDisableTime, final boolean protocol) {
             this.ssid = ssid;
             this.key = key;
             this.mode = mode;
