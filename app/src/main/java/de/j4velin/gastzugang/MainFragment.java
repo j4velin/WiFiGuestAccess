@@ -15,6 +15,7 @@
  */
 package de.j4velin.gastzugang;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.Fragment;
@@ -28,6 +29,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -39,7 +41,6 @@ import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.text.Html;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -89,7 +90,6 @@ public class MainFragment extends Fragment {
     private final static String KEY_ALLOW_COMMUNICATION = "user_isolation";
     private final static String KEY_ONLY_WEB = "group_access";
 
-    public final static String TAG = "Gastzugang";
     public static boolean PRO_VERSION = BuildConfig.FLAVOR.equals("fdroid");
     private boolean currently_enabled = false;
     static String SID;
@@ -115,7 +115,7 @@ public class MainFragment extends Fragment {
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(final Context context, final Intent intent) {
-            if (BuildConfig.DEBUG) android.util.Log.d(TAG, "WiFi change: " + intent.getAction());
+            if (BuildConfig.DEBUG) Logger.log("WiFi change: " + intent.getAction());
             if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())) {
                 NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (!wifiCurrentlyConnected && info.isConnected()) {
@@ -148,8 +148,7 @@ public class MainFragment extends Fragment {
         getActivity().registerReceiver(receiver,
                 new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
         if (wifiCurrentlyConnected) {
-            if (BuildConfig.DEBUG)
-                android.util.Log.d(TAG, "WiFi is currently connected -> readState");
+            if (BuildConfig.DEBUG) Logger.log("WiFi is currently connected -> readState");
             setError(null);
             readState();
         } else {
@@ -167,6 +166,14 @@ public class MainFragment extends Fragment {
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
                              final Bundle savedInstanceState) {
+
+        if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= 23 && getActivity().getPackageManager()
+                .checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        getActivity().getPackageName()) != PackageManager.PERMISSION_GRANTED) {
+            getActivity()
+                    .requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            1);
+        }
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
@@ -219,7 +226,7 @@ public class MainFragment extends Fragment {
 
     void purchased() {
         getView().findViewById(R.id.nag).setVisibility(View.GONE);
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "purchased");
+        if (BuildConfig.DEBUG) Logger.log("purchased");
     }
 
     private void askForLogin() {
@@ -263,7 +270,7 @@ public class MainFragment extends Fragment {
     }
 
     private void blocked(final int time) {
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "blocked " + time);
+        if (BuildConfig.DEBUG) Logger.log("blocked " + time);
         final Handler h = new Handler();
         if (pg != null && pg.isShowing()) pg.dismiss();
         pg = new ProgressDialog(getActivity());
@@ -292,7 +299,7 @@ public class MainFragment extends Fragment {
     }
 
     private void updateState() {
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "updateState " + currentConfig);
+        if (BuildConfig.DEBUG) Logger.log("updateState " + currentConfig);
         image.setVisibility(currently_enabled ? View.VISIBLE : View.GONE);
         scanToConnect.setVisibility(currently_enabled ? View.VISIBLE : View.GONE);
         ssid.setEnabled(!currently_enabled);
@@ -342,7 +349,7 @@ public class MainFragment extends Fragment {
     }
 
     private void changeWiFi(final boolean enable) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "change wifi");
+        if (BuildConfig.DEBUG) Logger.log("change wifi");
         pg = new ProgressDialog(getActivity());
         pg.setMessage(getString(R.string.please_wait));
         pg.show();
@@ -389,7 +396,7 @@ public class MainFragment extends Fragment {
                             }
                         }
                         if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "enabling network " + wifi_ssid + " " + key);
+                            Logger.log("enabling network " + wifi_ssid + " " + key);
                         }
                         parameters.put(KEY_ACTIVATE, "on");
                         parameters.put(KEY_SSID, wifi_ssid);
@@ -409,11 +416,11 @@ public class MainFragment extends Fragment {
                         if (prefs.getBoolean("wifi_communicate", false))
                             parameters.put(KEY_ALLOW_COMMUNICATION, "on");
                     } else if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "disabling network");
+                        Logger.log("disabling network");
                     }
 
                     if (BuildConfig.DEBUG)
-                        Log.d(TAG, Arrays.toString(parameters.entrySet().toArray()));
+                        Logger.log(Arrays.toString(parameters.entrySet().toArray()));
 
                     if (!postData(
                             "http://" + FRITZBOX_ADDRESS + "/wlan/guest_access.lua?sid=" + SID,
@@ -443,7 +450,7 @@ public class MainFragment extends Fragment {
     private boolean postData(final String requestURL,
                              final HashMap<String, String> postDataParams) {
         URL url;
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "post data to: " + requestURL);
+        if (BuildConfig.DEBUG) Logger.log("post data to: " + requestURL);
         int responseCode = -1;
         try {
             url = new URL(requestURL);
@@ -463,7 +470,7 @@ public class MainFragment extends Fragment {
             writer.close();
             os.close();
             responseCode = conn.getResponseCode();
-            if (BuildConfig.DEBUG) android.util.Log.d(TAG, "response code: " + responseCode);
+            if (BuildConfig.DEBUG) Logger.log("response code: " + responseCode);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -532,19 +539,19 @@ public class MainFragment extends Fragment {
 
     private Parser.LoginEntry getLogin(final URL url) throws IOException, XmlPullParserException,
             NoSuchAlgorithmException {
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "getting login from " + url);
+        if (BuildConfig.DEBUG) Logger.log("getting login from " + url);
         Parser p = new Parser();
         InputStream in = url.openStream();
         List<Parser.Entry> entries = p.parse(in);
         in.close();
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "read entries: " + entries.size());
+        if (BuildConfig.DEBUG) Logger.log("read entries: " + entries.size());
         Parser.LoginEntry login = null;
         for (int i = 0; i < entries.size() && login == null; i++) {
             if (entries.get(i) instanceof Parser.LoginEntry) {
                 login = (Parser.LoginEntry) entries.get(0);
             }
         }
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "login: " + login);
+        if (BuildConfig.DEBUG) Logger.log("login: " + login);
         if (login.sid.equals("0000000000000000")) {
             if (url.toString().contains("response") || FRITZBOX_PW == null ||
                     FRITZBOX_PW.length() < 1) return login;
@@ -560,7 +567,7 @@ public class MainFragment extends Fragment {
     }
 
     private void readState() {
-        if (BuildConfig.DEBUG) android.util.Log.d(TAG, "readstate");
+        if (BuildConfig.DEBUG) Logger.log("readstate");
         if (pg != null && pg.isShowing()) pg.dismiss();
         pg = new ProgressDialog(getActivity());
         pg.setTitle(R.string.reading_config);
@@ -572,7 +579,7 @@ public class MainFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    if (BuildConfig.DEBUG) Log.d(TAG, "reading current state");
+                    if (BuildConfig.DEBUG) Logger.log("reading current state");
                     if (SID == null) {
                         final Parser.LoginEntry login = getLogin();
                         if (login == null) return;
@@ -585,7 +592,7 @@ public class MainFragment extends Fragment {
                             }, 500);
                             return;
                         } else if (login.sid.equals("0000000000000000")) {
-                            if (BuildConfig.DEBUG) Log.d(TAG, "readstate -> askforlogin");
+                            if (BuildConfig.DEBUG) Logger.log("readstate -> askforlogin");
                             h.post(new Runnable() {
                                 @Override
                                 public void run() {
@@ -653,7 +660,7 @@ public class MainFragment extends Fragment {
                             Html.fromHtml(key).toString(), mode, autodisable,
                             autodisableNoConnection, autodisableTime, protocol);
 
-                    if (BuildConfig.DEBUG) Log.d(TAG, "current config: " + currentConfig);
+                    if (BuildConfig.DEBUG) Logger.log("current config: " + currentConfig);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -706,7 +713,7 @@ public class MainFragment extends Fragment {
             this.autoDisableTime = autoDisableTime;
             this.protocol = protocol;
             if (BuildConfig.DEBUG)
-                Log.d(TAG, mode + "," + autoDisable + "," + autoDisableNoConnection + "," +
+                Logger.log(mode + "," + autoDisable + "," + autoDisableNoConnection + "," +
                         autoDisableTime + "," + protocol);
         }
 

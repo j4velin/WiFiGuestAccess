@@ -48,18 +48,17 @@ public class MainActivity extends Activity {
     private final ServiceConnection mServiceConn = new ServiceConnection() {
         @Override
         public void onServiceDisconnected(final ComponentName name) {
-            if (BuildConfig.DEBUG) android.util.Log.d(MainFragment.TAG, "vending disconnected");
+            if (BuildConfig.DEBUG) Logger.log("vending disconnected");
             mService = null;
         }
 
         @Override
         public void onServiceConnected(final ComponentName name, final IBinder service) {
-            if (BuildConfig.DEBUG) android.util.Log.d(MainFragment.TAG, "vending connected");
+            if (BuildConfig.DEBUG) Logger.log("vending connected");
             mService = IInAppBillingService.Stub.asInterface(service);
             try {
                 Bundle ownedItems = mService.getPurchases(3, getPackageName(), "inapp", null);
-                if (BuildConfig.DEBUG)
-                    android.util.Log.d(MainFragment.TAG, "ownedItems: " + ownedItems);
+                if (BuildConfig.DEBUG) Logger.log("ownedItems: " + ownedItems);
                 if (ownedItems.getInt("RESPONSE_CODE") == 0) {
                     MainFragment.PRO_VERSION =
                             ownedItems.getStringArrayList("INAPP_PURCHASE_ITEM_LIST") != null &&
@@ -106,8 +105,7 @@ public class MainActivity extends Activity {
             if (data.getIntExtra("RESPONSE_CODE", 0) == 0) {
                 try {
                     JSONObject jo = new JSONObject(data.getStringExtra("INAPP_PURCHASE_DATA"));
-                    if (BuildConfig.DEBUG)
-                        android.util.Log.d(MainFragment.TAG, "onActivityResult: " + jo);
+                    if (BuildConfig.DEBUG) Logger.log("onActivityResult: " + jo);
                     MainFragment.PRO_VERSION = jo.getString("productId").equals(SKU) &&
                             jo.getString("developerPayload").equals(getPackageName());
                     PreferenceManager.getDefaultSharedPreferences(this).edit()
@@ -133,7 +131,7 @@ public class MainActivity extends Activity {
         MainFragment.PRO_VERSION |=
                 PreferenceManager.getDefaultSharedPreferences(this).getBoolean("pro", false);
         if (!MainFragment.PRO_VERSION) {
-            if (BuildConfig.DEBUG) android.util.Log.d(MainFragment.TAG, "binding to service");
+            if (BuildConfig.DEBUG) Logger.log("binding to service");
             bindService(new Intent("com.android.vending.billing.InAppBillingService.BIND")
                     .setPackage("com.android.vending"), mServiceConn, Context.BIND_AUTO_CREATE);
         }

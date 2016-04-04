@@ -63,6 +63,7 @@ public class Parser {
                 continue;
             }
             String name = parser.getName();
+            if (BuildConfig.DEBUG) Logger.log("reading " + name);
             // Starts by looking for the entry tag
             if (name.equals("SessionInfo")) {
                 entries.add(readSessionInfo(parser));
@@ -83,6 +84,7 @@ public class Parser {
                 continue;
             }
             String name = parser.getName();
+            if (BuildConfig.DEBUG) Logger.log("reading " + name);
             if (name.equals("SID")) {
                 sid = readTag(parser, name);
             } else if (name.equals("Challenge")) {
@@ -93,8 +95,8 @@ public class Parser {
                 skip(parser);
             }
         }
-        if (BuildConfig.DEBUG) android.util.Log.d(MainFragment.TAG,
-                "returning logininfo " + sid + " / " + challenged + " / " + block);
+        if (BuildConfig.DEBUG)
+            Logger.log("returning logininfo " + sid + " / " + challenged + " / " + block);
         return new LoginEntry(sid, challenged, Integer.valueOf(block));
     }
 
@@ -107,7 +109,7 @@ public class Parser {
             parser.nextTag();
         }
         parser.require(XmlPullParser.END_TAG, null, tag);
-        if (BuildConfig.DEBUG) android.util.Log.d(MainFragment.TAG,
+        if (BuildConfig.DEBUG) Logger.log(
                 "tag read: original: " + result + " fromHtml: " + Html.fromHtml(result).toString());
         return Html.fromHtml(result).toString();
     }
