@@ -13,10 +13,6 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
-        }
-        debug {
-            signingConfig signingConfigs.release
         }
     }
 
@@ -32,7 +28,7 @@ dependencies {
 
 def props = new Properties()
 
-props.load(new FileInputStream(project.file("..\\local.properties")))
+props.load(new FileInputStream(project.file("..//local.properties")))
 
 android.signingConfigs.release.storeFile project.file(props.keyStore)
 
