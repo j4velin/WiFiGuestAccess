@@ -181,6 +181,10 @@ public class MainFragment extends Fragment {
         FRITZBOX_PW = Util.decrypt(prefs.getString("fb_pw", null), getActivity());
         FRITZBOX_ADDRESS = prefs.getString("address", "fritz.box");
 
+        if (FRITZBOX_ADDRESS.contains("http://")) {
+            FRITZBOX_ADDRESS = FRITZBOX_ADDRESS.replace("http://", "");
+        }
+
         final View v = inflater.inflate(R.layout.content_main, null);
         ssid = (EditText) v.findViewById(R.id.ssid);
         key = (EditText) v.findViewById(R.id.key);
@@ -518,6 +522,7 @@ public class MainFragment extends Fragment {
         try {
             return getLogin(new URL(url));
         } catch (final Exception e) {
+            if (BuildConfig.DEBUG) Logger.log(e);
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -532,7 +537,6 @@ public class MainFragment extends Fragment {
 
                 }
             });
-            e.printStackTrace();
             return null;
         }
     }
