@@ -26,17 +26,17 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Parser {
+class Parser {
 
-    public static class Entry {
+    static class Entry {
     }
 
-    public static class LoginEntry extends Entry {
-        public final String sid;
-        public final String challenge;
-        public final int blockTime;
+    static class LoginEntry extends Entry {
+        final String sid;
+        final String challenge;
+        final int blockTime;
 
-        public LoginEntry(final String sid, final String challenge, final int block) {
+        LoginEntry(final String sid, final String challenge, final int block) {
             this.sid = sid;
             this.challenge = challenge;
             this.blockTime = block;
@@ -48,7 +48,7 @@ public class Parser {
         }
     }
 
-    public List<Entry> parse(final InputStream in) throws XmlPullParserException, IOException {
+    List<Entry> parse(final InputStream in) throws XmlPullParserException, IOException {
         XmlPullParser parser = Xml.newPullParser();
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
         parser.setInput(in, null);
@@ -78,21 +78,25 @@ public class Parser {
             IOException {
         parser.require(XmlPullParser.START_TAG, null, "SessionInfo");
         String sid = null, challenged = null, block = "-1";
-        while (parser.next() != XmlPullParser.END_TAG &&
-                (sid == null || challenged == null || block == null)) {
+        while (parser.next() != XmlPullParser.END_TAG && (sid == null || challenged == null)) {
             if (parser.getEventType() != XmlPullParser.START_TAG) {
                 continue;
             }
             String name = parser.getName();
             if (BuildConfig.DEBUG) Logger.log("reading " + name);
-            if (name.equals("SID")) {
-                sid = readTag(parser, name);
-            } else if (name.equals("Challenge")) {
-                challenged = readTag(parser, name);
-            } else if (name.equals("BlockTime")) {
-                block = readTag(parser, name);
-            } else {
-                skip(parser);
+            switch (name) {
+                case "SID":
+                    sid = readTag(parser, name);
+                    break;
+                case "Challenge":
+                    challenged = readTag(parser, name);
+                    break;
+                case "BlockTime":
+                    block = readTag(parser, name);
+                    break;
+                default:
+                    skip(parser);
+                    break;
             }
         }
         if (BuildConfig.DEBUG)

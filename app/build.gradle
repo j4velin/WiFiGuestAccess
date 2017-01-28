@@ -5,7 +5,7 @@ android {
         release
     }
     compileSdkVersion 23
-    buildToolsVersion "24"
+    buildToolsVersion "24.0.1"
     defaultConfig {
         applicationId "de.j4velin.gastzugang"
     }

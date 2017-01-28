@@ -107,7 +107,7 @@ public class MainFragment extends Fragment {
     private boolean wifiCurrentlyConnected;
     private Dialog loginCredentials;
 
-    private int display_width = 600;
+    private static int display_width = 600;
 
     private final static String ALL_CHARS =
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -451,8 +451,8 @@ public class MainFragment extends Fragment {
     }
 
 
-    private boolean postData(final String requestURL,
-                             final HashMap<String, String> postDataParams) {
+    private static boolean postData(final String requestURL,
+                                    final HashMap<String, String> postDataParams) {
         URL url;
         if (BuildConfig.DEBUG) Logger.log("post data to: " + requestURL);
         int responseCode = -1;
@@ -476,12 +476,12 @@ public class MainFragment extends Fragment {
             responseCode = conn.getResponseCode();
             if (BuildConfig.DEBUG) Logger.log("response code: " + responseCode);
         } catch (Exception e) {
-            e.printStackTrace();
+            if (BuildConfig.DEBUG) Logger.log(e);
         }
         return responseCode == HttpURLConnection.HTTP_OK;
     }
 
-    private String getPostDataString(final HashMap<String, String> params) throws
+    private static String getPostDataString(final HashMap<String, String> params) throws
             UnsupportedEncodingException {
         StringBuilder result = new StringBuilder();
         boolean first = true;
@@ -541,8 +541,8 @@ public class MainFragment extends Fragment {
         }
     }
 
-    private Parser.LoginEntry getLogin(final URL url) throws IOException, XmlPullParserException,
-            NoSuchAlgorithmException {
+    private static Parser.LoginEntry getLogin(final URL url) throws IOException,
+            XmlPullParserException, NoSuchAlgorithmException {
         if (BuildConfig.DEBUG) Logger.log("getting login from " + url);
         Parser p = new Parser();
         InputStream in = url.openStream();
@@ -552,7 +552,7 @@ public class MainFragment extends Fragment {
         Parser.LoginEntry login = null;
         for (int i = 0; i < entries.size() && login == null; i++) {
             if (entries.get(i) instanceof Parser.LoginEntry) {
-                login = (Parser.LoginEntry) entries.get(0);
+                login = (Parser.LoginEntry) entries.get(i);
             }
         }
         if (BuildConfig.DEBUG) Logger.log("login: " + login);
@@ -678,7 +678,7 @@ public class MainFragment extends Fragment {
                                 } else {
                                     askForLogin();
                                 }
-                                pg.dismiss();
+                                if (pg != null && pg.isShowing()) pg.dismiss();
                             }
                         });
                     }
@@ -687,11 +687,11 @@ public class MainFragment extends Fragment {
         }).start();
     }
 
-    private String addNameTag(final String key) {
+    private static String addNameTag(final String key) {
         return new StringBuilder("name=\"").append(key).append("\"").toString();
     }
 
-    private String getRandomKey(long seed) {
+    private static String getRandomKey(long seed) {
         Random r = new Random(seed);
         char[] re = new char[10];
         int max = ALL_CHARS.length();
@@ -701,7 +701,7 @@ public class MainFragment extends Fragment {
         return String.valueOf(re);
     }
 
-    private class WiFiData {
+    private static class WiFiData {
         private final String ssid, key;
         private final int mode, autoDisableTime;
         private final boolean autoDisable, autoDisableNoConnection, protocol;

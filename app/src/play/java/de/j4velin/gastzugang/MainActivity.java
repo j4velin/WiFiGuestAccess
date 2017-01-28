@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
                                     ownedItems.getStringArrayList("INAPP_PURCHASE_ITEM_LIST")
                                             .contains(SKU);
                     PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit()
-                            .putBoolean("pro", MainFragment.PRO_VERSION).commit();
+                            .putBoolean("pro", MainFragment.PRO_VERSION).apply();
                     if (MainFragment.PRO_VERSION) {
                         unbindService(this);
                         mService = null;
@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
                     MainFragment.PRO_VERSION = jo.getString("productId").equals(SKU) &&
                             jo.getString("developerPayload").equals(getPackageName());
                     PreferenceManager.getDefaultSharedPreferences(this).edit()
-                            .putBoolean("pro", MainFragment.PRO_VERSION).commit();
+                            .putBoolean("pro", MainFragment.PRO_VERSION).apply();
                     if (fragment != null) fragment.purchased();
                 } catch (Exception e) {
                     Toast.makeText(this, e.getClass().getName() + ": " + e.getMessage(),
