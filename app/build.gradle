@@ -5,7 +5,8 @@ android {
         release
     }
     compileSdkVersion 23
-    buildToolsVersion "24.0.1"
+    buildToolsVersion "27.0.3"
+    flavorDimensions "main"
     defaultConfig {
         applicationId "de.j4velin.gastzugang"
     }
@@ -21,13 +22,17 @@ android {
     }
 
     productFlavors {
-        play
-        fdroid
+        play {
+            dimension "main"
+        }
+        fdroid {
+            dimension "main"
+        }
     }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
 
 def props = new Properties()

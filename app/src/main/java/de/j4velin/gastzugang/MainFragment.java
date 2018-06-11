@@ -142,7 +142,8 @@ public class MainFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        WifiManager wm = (WifiManager) getActivity().getSystemService(Context.WIFI_SERVICE);
+        WifiManager wm = (WifiManager) getActivity().getApplicationContext()
+                .getSystemService(Context.WIFI_SERVICE);
         wifiCurrentlyConnected = wm.getWifiState() == WifiManager.WIFI_STATE_ENABLED &&
                 wm.getConnectionInfo() != null;
         getActivity().registerReceiver(receiver,
@@ -563,8 +564,7 @@ public class MainFragment extends Fragment {
                     "?username=" + FRITZBOX_USER + "&" : "?";
             return getLogin(
                     new URL("http://" + FRITZBOX_ADDRESS + "/login_sid.lua" + user + "response=" +
-                            login.challenge + "-" +
-                            Util.md5(login.challenge + "-" + FRITZBOX_PW)));
+                            login.challenge + "-" + Util.md5(login.challenge + "-" + FRITZBOX_PW)));
         } else {
             return login;
         }
@@ -623,6 +623,7 @@ public class MainFragment extends Fragment {
                     boolean timeLine = false;
                     boolean protocol = false;
                     while (line != null) {
+                        if (BuildConfig.DEBUG) Logger.log("  read: " + line);
                         if (line.contains(addNameTag(KEY_ACTIVATE))) {
                             guest_wifi_page = true;
                             currently_enabled = line.contains("checked");
@@ -667,7 +668,7 @@ public class MainFragment extends Fragment {
                     if (BuildConfig.DEBUG) Logger.log("current config: " + currentConfig);
 
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    if (BuildConfig.DEBUG) Logger.log(e);
                 } finally {
                     if (pg != null && pg.isShowing()) {
                         h.post(new Runnable() {
@@ -716,9 +717,9 @@ public class MainFragment extends Fragment {
             this.autoDisableNoConnection = autoDisableNoConnection;
             this.autoDisableTime = autoDisableTime;
             this.protocol = protocol;
-            if (BuildConfig.DEBUG)
-                Logger.log(mode + "," + autoDisable + "," + autoDisableNoConnection + "," +
-                        autoDisableTime + "," + protocol);
+            if (BuildConfig.DEBUG) Logger.log(
+                    mode + "," + autoDisable + "," + autoDisableNoConnection + "," +
+                            autoDisableTime + "," + protocol);
         }
 
         @Override
