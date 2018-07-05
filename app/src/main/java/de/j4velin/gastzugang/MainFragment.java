@@ -49,6 +49,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.android.encode.QRCodeEncoder;
@@ -661,12 +662,23 @@ public class MainFragment extends Fragment {
                     }
                     br.close();
                     if (!guest_wifi_page) SID = null;
-                    currentConfig = new WiFiData(Html.fromHtml(ssid).toString(),
-                            Html.fromHtml(key).toString(), mode, autodisable,
-                            autodisableNoConnection, autodisableTime, protocol);
-
-                    if (BuildConfig.DEBUG) Logger.log("current config: " + currentConfig);
-
+                    if (ssid == null || key == null) {
+                        if (BuildConfig.DEBUG) Logger.log(
+                                "can not read ssid/key: ssid=" + ssid + ", key=null? " +
+                                        (key != null));
+                        h.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(getActivity(), "Unable to read guest access config",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } else {
+                        currentConfig = new WiFiData(Html.fromHtml(ssid).toString(),
+                                Html.fromHtml(key).toString(), mode, autodisable,
+                                autodisableNoConnection, autodisableTime, protocol);
+                        if (BuildConfig.DEBUG) Logger.log("current config: " + currentConfig);
+                    }
                 } catch (Exception e) {
                     if (BuildConfig.DEBUG) Logger.log(e);
                 } finally {
