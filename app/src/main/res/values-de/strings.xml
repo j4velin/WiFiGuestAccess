@@ -35,6 +35,6 @@
     <string name="help">Hilfe</string>
     <string name="guest_settings_not_found">Gastzugang-Einstellungen nicht gefunden - bitte stelle sicher das deine Fritz!Box diese Funktion unterstützt und kontaktiere mich, wenn dem so ist</string>
     <string name="ip_address">Fritz!Box IP-Adresse</string>
-    <string name="ip_address_summary">Wenn die Verbindung zur Fritz!Box nicht funktioniert kann hier die IP-Adresse der Fritz!Box eingegeben werden</string>
+    <string name="ip_address_summary">Wenn die Verbindung zur Fritz!Box nicht funktioniert kann hier die IP-Adresse der Fritz!Box eingegeben werden (ohne http://)</string>
     <string name="guest_wifi_active">WLAN-Gastzugang aktiv</string>
 </resources>

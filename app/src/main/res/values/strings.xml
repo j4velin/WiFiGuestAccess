@@ -35,6 +35,6 @@
     <string name="help">Help</string>
     <string name="guest_settings_not_found">Guest-WiFi settings not found - please make sure your Fritz!Box supports this feature and contact me if it does</string>
     <string name="ip_address">Fritz!Box IP-address</string>
-    <string name="ip_address_summary">If the connection to the Fritz!Box does not work, try entering the IP address directly</string>
+    <string name="ip_address_summary">If the connection to the Fritz!Box does not work, try entering the IP address directly (without http://)</string>
     <string name="guest_wifi_active">Guest-WiFi active</string>
 </resources>

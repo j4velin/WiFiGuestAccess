@@ -57,8 +57,13 @@ public class SettingsActivity extends Activity {
             findPreference("address")
                     .setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                         @Override
-                        public boolean onPreferenceChange(final Preference preference, final Object o) {
-                            MainFragment.FRITZBOX_ADDRESS = (String) o;
+                        public boolean onPreferenceChange(final Preference preference,
+                                                          final Object o) {
+                            String address = (String) o;
+                            if (address.contains("http://")) {
+                                address = address.replace("http://", "");
+                            }
+                            MainFragment.FRITZBOX_ADDRESS = address;
                             return true;
                         }
                     });

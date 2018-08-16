@@ -29,9 +29,9 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 
-public abstract class Util {
+abstract class Util {
 
-    public static String encrypt(final String value, final Context c) {
+    static String encrypt(final String value, final Context c) {
         if (value == null) return null;
         try {
             final byte[] bytes = (value + "#correct").getBytes(Charset.forName("UTF-8"));
@@ -50,7 +50,7 @@ public abstract class Util {
         }
     }
 
-    public static String decrypt(final String value, final Context c) {
+    static String decrypt(final String value, final Context c) {
         if (value == null) return null;
         try {
             final byte[] bytes = Base64.decode(value, Base64.DEFAULT);
@@ -74,7 +74,7 @@ public abstract class Util {
         }
     }
 
-    public static String md5(final String string) throws NoSuchAlgorithmException,
+    static String md5(final String string) throws NoSuchAlgorithmException,
             UnsupportedEncodingException {
         byte[] digest = MessageDigest.getInstance("MD5")
                 .digest((string).getBytes(Charset.forName("utf-16le")));
