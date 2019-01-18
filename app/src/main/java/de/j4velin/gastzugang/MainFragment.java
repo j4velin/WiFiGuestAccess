@@ -140,37 +140,40 @@ public class MainFragment extends Fragment {
         if (wifiCurrentlyConnected) {
             if (BuildConfig.DEBUG) Logger.log("WiFi is currently connected -> readState");
             setError(null);
-            final SharedPreferences prefs =
-                    PreferenceManager.getDefaultSharedPreferences(getActivity());
-            int version = prefs.getInt("version", -1);
-            strategy = Util.fromVersion(version);
-            if (strategy == null) {
-                DialogInterface.OnClickListener clickListener =
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                switch (which) {
-                                    case DialogInterface.BUTTON_POSITIVE:
-                                        strategy = new FritzOs7();
-                                        prefs.edit().putBoolean("version7setup", false).apply();
-                                        break;
-                                    case DialogInterface.BUTTON_NEGATIVE:
-                                        strategy = new FritzOs6();
-                                        break;
-                                }
-                                prefs.edit().putInt("version", strategy.getVersion()).apply();
-                                dialog.dismiss();
-                                readState();
-                            }
-                        };
-                new AlertDialog.Builder(getActivity()).setMessage(R.string.ask_version)
-                        .setPositiveButton("FRITZ!OS 07.xx", clickListener)
-                        .setNegativeButton("FRITZ!OS 06.xx", clickListener).create().show();
-            } else {
-                readState();
-            }
+            getVersion();
         } else {
             setError(getActivity().getString(R.string.not_connected));
+        }
+    }
+
+    private void getVersion() {
+        final SharedPreferences prefs =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+        int version = prefs.getInt("version", -1);
+        strategy = Util.fromVersion(version);
+        if (strategy == null) {
+            DialogInterface.OnClickListener clickListener = new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    switch (which) {
+                        case DialogInterface.BUTTON_POSITIVE:
+                            strategy = new FritzOs7();
+                            prefs.edit().putBoolean("version7setup", false).apply();
+                            break;
+                        case DialogInterface.BUTTON_NEGATIVE:
+                            strategy = new FritzOs6();
+                            break;
+                    }
+                    prefs.edit().putInt("version", strategy.getVersion()).apply();
+                    dialog.dismiss();
+                    readState();
+                }
+            };
+            new AlertDialog.Builder(getActivity()).setMessage(R.string.ask_version)
+                    .setPositiveButton("FRITZ!OS 07.xx", clickListener)
+                    .setNegativeButton("FRITZ!OS 06.xx", clickListener).create().show();
+        } else {
+            readState();
         }
     }
 
@@ -204,10 +207,10 @@ public class MainFragment extends Fragment {
         }
 
         final View v = inflater.inflate(R.layout.content_main, null);
-        ssid = (EditText) v.findViewById(R.id.ssid);
-        key = (EditText) v.findViewById(R.id.key);
-        button = (Button) v.findViewById(R.id.button);
-        image = (ImageView) v.findViewById(R.id.image);
+        ssid = v.findViewById(R.id.ssid);
+        key = v.findViewById(R.id.key);
+        button = v.findViewById(R.id.button);
+        image = v.findViewById(R.id.image);
         scanToConnect = v.findViewById(R.id.scantext);
 
         v.findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
@@ -565,6 +568,7 @@ public class MainFragment extends Fragment {
                             public void run() {
                                 Toast.makeText(getActivity(), "Unable to read guest access config",
                                         Toast.LENGTH_SHORT).show();
+                                getVersion();
                             }
                         });
                     } else if (strategy.getVersion() == 7 &&
