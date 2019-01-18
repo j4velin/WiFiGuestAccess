@@ -54,6 +54,17 @@ public class SettingsActivity extends Activity {
                             return true;
                         }
                     });
+            findPreference("delete_version")
+                    .setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                        @Override
+                        public boolean onPreferenceClick(final Preference preference) {
+                            PreferenceManager.getDefaultSharedPreferences(getActivity()).edit()
+                                    .remove("version").remove("version7setup").apply();
+                            Toast.makeText(getActivity(), android.R.string.ok, Toast.LENGTH_SHORT)
+                                    .show();
+                            return true;
+                        }
+                    });
             findPreference("address")
                     .setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                         @Override

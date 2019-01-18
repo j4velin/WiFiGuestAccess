@@ -39,7 +39,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
-import android.text.Html;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -56,45 +55,26 @@ import com.google.zxing.client.android.encode.QRCodeEncoder;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+
+import de.j4velin.gastzugang.version.FritzOs;
+import de.j4velin.gastzugang.version.FritzOs6;
+import de.j4velin.gastzugang.version.FritzOs7;
 
 public class MainFragment extends Fragment {
 
-    private final static String KEY_ACTIVATE = "activate_guest_access";
-    private final static String KEY_SSID = "guest_ssid";
-    private final static String KEY_SEC_MODE = "sec_mode";
-    private final static String KEY_SEC_DEPRECATED = "wlan_security";
-    private final static String KEY_SEC_MODE_DEPRECATED = "wpa_modus";
-    private final static String KEY_PASSWORD = "wpa_key";
-    private final static String KEY_AUTODISABLE = "down_time_activ";
-    private final static String KEY_AUTODISABLE_NOCON = "disconnect_guest_access";
-    private final static String KEY_AUTODISABLE_TIME = "down_time_value";
-    private final static String KEY_PROTOCOL = "push_service";
-    private final static String KEY_ALLOW_COMMUNICATION = "user_isolation";
-    private final static String KEY_ONLY_WEB = "group_access";
-
     public static boolean PRO_VERSION = BuildConfig.FLAVOR.equals("fdroid");
-    private boolean currently_enabled = false;
     static String SID;
     static String FRITZBOX_PW, FRITZBOX_USER, FRITZBOX_ADDRESS;
+
+    private FritzOs strategy;
 
     private WiFiData currentConfig;
 
@@ -141,6 +121,14 @@ public class MainFragment extends Fragment {
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            API26Wrapper.createNotificationChannel(getContext());
+        }
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         WifiManager wm = (WifiManager) getActivity().getApplicationContext()
@@ -152,7 +140,35 @@ public class MainFragment extends Fragment {
         if (wifiCurrentlyConnected) {
             if (BuildConfig.DEBUG) Logger.log("WiFi is currently connected -> readState");
             setError(null);
-            readState();
+            final SharedPreferences prefs =
+                    PreferenceManager.getDefaultSharedPreferences(getActivity());
+            int version = prefs.getInt("version", -1);
+            strategy = Util.fromVersion(version);
+            if (strategy == null) {
+                DialogInterface.OnClickListener clickListener =
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (which) {
+                                    case DialogInterface.BUTTON_POSITIVE:
+                                        strategy = new FritzOs7();
+                                        prefs.edit().putBoolean("version7setup", false).apply();
+                                        break;
+                                    case DialogInterface.BUTTON_NEGATIVE:
+                                        strategy = new FritzOs6();
+                                        break;
+                                }
+                                prefs.edit().putInt("version", strategy.getVersion()).apply();
+                                dialog.dismiss();
+                                readState();
+                            }
+                        };
+                new AlertDialog.Builder(getActivity()).setMessage(R.string.ask_version)
+                        .setPositiveButton("FRITZ!OS 07.xx", clickListener)
+                        .setNegativeButton("FRITZ!OS 06.xx", clickListener).create().show();
+            } else {
+                readState();
+            }
         } else {
             setError(getActivity().getString(R.string.not_connected));
         }
@@ -200,7 +216,7 @@ public class MainFragment extends Fragment {
                 if (currentConfig == null) {
                     readState();
                 } else {
-                    changeWiFi(!currently_enabled);
+                    changeWiFi(!currentConfig.enabled);
                 }
             }
         });
@@ -268,7 +284,7 @@ public class MainFragment extends Fragment {
                     public void onClick(final DialogInterface dialogInterface, int i) {
                         dialogInterface.dismiss();
                         getActivity().startActivity(new Intent(Intent.ACTION_VIEW,
-                                Uri.parse("http://j4velin.de/faq/index.php?app=gz"))
+                                Uri.parse("https://j4velin.de/faq/index.php?app=gz"))
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                     }
                 }).create();
@@ -306,6 +322,7 @@ public class MainFragment extends Fragment {
 
     private void updateState() {
         if (BuildConfig.DEBUG) Logger.log("updateState " + currentConfig);
+        boolean currently_enabled = currentConfig != null && currentConfig.enabled;
         image.setVisibility(currently_enabled ? View.VISIBLE : View.GONE);
         scanToConnect.setVisibility(currently_enabled ? View.VISIBLE : View.GONE);
         ssid.setEnabled(!currently_enabled);
@@ -329,6 +346,9 @@ public class MainFragment extends Fragment {
                 if (Build.VERSION.SDK_INT < 16) {
                     n = b.getNotification();
                 } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        API26Wrapper.setChannelId(b);
+                    }
                     n = b.build();
                 }
                 ((NotificationManager) getActivity().getSystemService(Context.NOTIFICATION_SERVICE))
@@ -377,19 +397,9 @@ public class MainFragment extends Fragment {
                     }
                     final SharedPreferences prefs =
                             PreferenceManager.getDefaultSharedPreferences(getActivity());
-                    final HashMap<String, String> parameters = new HashMap<>(8);
-                    parameters.put("apply", "");
-                    parameters.put("btnSave", "");
-                    if (currentConfig != null) {
-                        if (currentConfig.protocol) parameters.put(KEY_PROTOCOL, "on");
-                        if (currentConfig.autoDisable) {
-                            parameters.put(KEY_AUTODISABLE, "on");
-                            parameters.put(KEY_AUTODISABLE_TIME,
-                                    String.valueOf(currentConfig.autoDisableTime));
-                            if (currentConfig.autoDisableNoConnection)
-                                parameters.put(KEY_AUTODISABLE_NOCON, "on");
-                        }
-                    }
+
+                    WiFiData newConfig = new WiFiData(currentConfig).setEnabled(enable);
+
                     if (enable) {
                         String key;
                         if (prefs.getBoolean("random_key", false)) {
@@ -401,36 +411,18 @@ public class MainFragment extends Fragment {
                                 key += Math.random() * 10;
                             }
                         }
-                        if (BuildConfig.DEBUG) {
-                            Logger.log("enabling network " + wifi_ssid + " " + key);
-                        }
-                        parameters.put(KEY_ACTIVATE, "on");
-                        parameters.put(KEY_SSID, wifi_ssid);
-                        int sec_mode = prefs.getInt("wifi_security", 3);
-                        if (sec_mode == 5) {
-                            // no encryption
-                            parameters.put(KEY_SEC_DEPRECATED, "1");
-                        } else {
-                            parameters.put(KEY_SEC_DEPRECATED, "0");
-                            parameters.put(KEY_SEC_MODE_DEPRECATED, String.valueOf(sec_mode));
-                            parameters.put(KEY_PASSWORD, key);
-                        }
-                        parameters.put(KEY_SEC_MODE, String.valueOf(sec_mode));
-
-                        if (prefs.getBoolean("wifi_limited_access", true))
-                            parameters.put(KEY_ONLY_WEB, "on");
-                        if (prefs.getBoolean("wifi_communicate", false))
-                            parameters.put(KEY_ALLOW_COMMUNICATION, "on");
-                    } else if (BuildConfig.DEBUG) {
-                        Logger.log("disabling network");
+                        newConfig.setSsid(wifi_ssid);
+                        newConfig.setKey(key);
+                        newConfig.setOnly_web(prefs.getBoolean("wifi_limited_access", true));
+                        newConfig.setAllow_communication(
+                                prefs.getBoolean("wifi_communicate", false));
                     }
 
-                    if (BuildConfig.DEBUG)
-                        Logger.log(Arrays.toString(parameters.entrySet().toArray()));
+                    if (BuildConfig.DEBUG) Logger.log("setting new state to " + newConfig);
 
-                    if (!postData(
-                            "http://" + FRITZBOX_ADDRESS + "/wlan/guest_access.lua?sid=" + SID,
-                            parameters)) {
+                    boolean success = strategy.setConfig(FRITZBOX_ADDRESS, SID, newConfig);
+
+                    if (!success) {
                         h.post(new Runnable() {
                             @Override
                             public void run() {
@@ -452,52 +444,6 @@ public class MainFragment extends Fragment {
         }).start();
     }
 
-
-    private static boolean postData(final String requestURL,
-                                    final HashMap<String, String> postDataParams) {
-        URL url;
-        if (BuildConfig.DEBUG) Logger.log("post data to: " + requestURL);
-        int responseCode = -1;
-        try {
-            url = new URL(requestURL);
-
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(15000);
-            conn.setConnectTimeout(15000);
-            conn.setRequestMethod("POST");
-            conn.setDoInput(true);
-            conn.setDoOutput(true);
-
-            OutputStream os = conn.getOutputStream();
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-            writer.write(getPostDataString(postDataParams));
-
-            writer.flush();
-            writer.close();
-            os.close();
-            responseCode = conn.getResponseCode();
-            if (BuildConfig.DEBUG) Logger.log("response code: " + responseCode);
-        } catch (Exception e) {
-            if (BuildConfig.DEBUG) Logger.log(e);
-        }
-        return responseCode == HttpURLConnection.HTTP_OK;
-    }
-
-    private static String getPostDataString(final HashMap<String, String> params) throws
-            UnsupportedEncodingException {
-        StringBuilder result = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (first) first = false;
-            else result.append("&");
-
-            result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-            result.append("=");
-            result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-        }
-
-        return result.toString();
-    }
 
     private void showErrorDialog(final String msg) {
         new AlertDialog.Builder(getActivity()).setMessage(msg)
@@ -609,63 +555,11 @@ public class MainFragment extends Fragment {
                             SID = login.sid;
                         }
                     }
-
-                    URL url = new URL("http://" + FRITZBOX_ADDRESS + "/wlan/guest_access.lua?sid=" +
-                            SID);
-                    BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
-                    String line = br.readLine();
-                    String ssid = null, key = null;
-                    int mode = -1;
-                    boolean modeLine = false;
-                    boolean guest_wifi_page = false;
-                    boolean autodisable = false;
-                    boolean autodisableNoConnection = false;
-                    int autodisableTime = 0;
-                    boolean timeLine = false;
-                    boolean protocol = false;
-                    while (line != null) {
-                        if (BuildConfig.DEBUG) Logger.log("  read: " + line);
-                        if (line.contains(addNameTag(KEY_ACTIVATE))) {
-                            guest_wifi_page = true;
-                            currently_enabled = line.contains("checked");
-                        } else if (line.contains(addNameTag(KEY_SSID))) {
-                            ssid = line.substring(line.indexOf("value=\"") + 7,
-                                    line.indexOf("\"", line.indexOf("value=\"") + 7));
-                        } else if (line.contains(addNameTag(KEY_SEC_MODE))) {
-                            modeLine = true;
-                        } else if (modeLine && line.contains("<option value=") &&
-                                line.contains("selected=\"selected\"")) {
-                            mode = Integer.parseInt(line.substring(line.indexOf("\"") + 1,
-                                    line.indexOf("\"", line.indexOf("\"") + 1)));
-                        } else if (modeLine && line.contains("</select>")) {
-                            modeLine = false;
-                        } else if (line.contains(addNameTag(KEY_PASSWORD))) {
-                            key = line.substring(line.indexOf("value=\"") + 7,
-                                    line.indexOf("\"", line.indexOf("value=\"") + 7));
-                        } else if (line.contains(addNameTag(KEY_AUTODISABLE))) {
-                            autodisable = line.contains("checked");
-                        } else if (line.contains(addNameTag(KEY_AUTODISABLE_NOCON))) {
-                            autodisableNoConnection = line.contains("checked");
-                        } else if (line.contains(addNameTag(KEY_AUTODISABLE_TIME))) {
-                            timeLine = true;
-                        } else if (timeLine && line.contains("<option value=") &&
-                                line.contains("selected=\"selected\"")) {
-                            autodisableTime = Integer.parseInt(
-                                    line.substring(line.indexOf("\"") + 1,
-                                            line.indexOf("\"", line.indexOf("\"") + 1)));
-                        } else if (timeLine && line.contains("</select>")) {
-                            timeLine = false;
-                        } else if (line.contains(addNameTag(KEY_PROTOCOL))) {
-                            protocol = line.contains("checked");
-                        }
-                        line = br.readLine();
-                    }
-                    br.close();
-                    if (!guest_wifi_page) SID = null;
-                    if (ssid == null || key == null) {
-                        if (BuildConfig.DEBUG) Logger.log(
-                                "can not read ssid/key: ssid=" + ssid + ", key=null? " +
-                                        (key != null));
+                    currentConfig = strategy.readConfig(FRITZBOX_ADDRESS, SID);
+                    final SharedPreferences prefs =
+                            PreferenceManager.getDefaultSharedPreferences(getActivity());
+                    if (currentConfig == null) {
+                        prefs.edit().remove("version").apply();
                         h.post(new Runnable() {
                             @Override
                             public void run() {
@@ -673,11 +567,14 @@ public class MainFragment extends Fragment {
                                         Toast.LENGTH_SHORT).show();
                             }
                         });
-                    } else {
-                        currentConfig = new WiFiData(Html.fromHtml(ssid).toString(),
-                                Html.fromHtml(key).toString(), mode, autodisable,
-                                autodisableNoConnection, autodisableTime, protocol);
-                        if (BuildConfig.DEBUG) Logger.log("current config: " + currentConfig);
+                    } else if (strategy.getVersion() == 7 &&
+                            !prefs.getBoolean("version7setup", false)) {
+                        if (BuildConfig.DEBUG) Logger.log("setup first usage with fritzos 7");
+                        WiFiData newConfig = new WiFiData(currentConfig);
+                        newConfig.setEnabled(false);
+                        if (strategy.setConfig(FRITZBOX_ADDRESS, SID, newConfig)) {
+                            prefs.edit().putBoolean("version7setup", true).apply();
+                        }
                     }
                 } catch (Exception e) {
                     if (BuildConfig.DEBUG) Logger.log(e);
@@ -700,10 +597,6 @@ public class MainFragment extends Fragment {
         }).start();
     }
 
-    private static String addNameTag(final String key) {
-        return new StringBuilder("name=\"").append(key).append("\"").toString();
-    }
-
     private static String getRandomKey(long seed) {
         Random r = new Random(seed);
         char[] re = new char[10];
@@ -713,45 +606,4 @@ public class MainFragment extends Fragment {
         }
         return String.valueOf(re);
     }
-
-    private static class WiFiData {
-        private final String ssid, key;
-        private final int mode, autoDisableTime;
-        private final boolean autoDisable, autoDisableNoConnection, protocol;
-
-        private WiFiData(final String ssid, final String key, final int mode,
-                         final boolean autoDisable, final boolean autoDisableNoConnection,
-                         final int autoDisableTime, final boolean protocol) {
-            this.ssid = ssid;
-            this.key = key;
-            this.mode = mode;
-            this.autoDisable = autoDisable;
-            this.autoDisableNoConnection = autoDisableNoConnection;
-            this.autoDisableTime = autoDisableTime;
-            this.protocol = protocol;
-            if (BuildConfig.DEBUG) Logger.log(
-                    mode + "," + autoDisable + "," + autoDisableNoConnection + "," +
-                            autoDisableTime + "," + protocol);
-        }
-
-        @Override
-        public String toString() {
-            String m;
-            switch (mode) {
-                case 2:
-                    m = "WPA";
-                    break;
-                default:
-                case 3:
-                case 4:
-                    m = "WPA2";
-                    break;
-                case 5:
-                    m = "nopass";
-                    break;
-            }
-            return "WIFI:S:" + ssid + ";T:" + m + ";P:" + key + ";;";
-        }
-    }
-
 }

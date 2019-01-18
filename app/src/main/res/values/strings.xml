@@ -37,4 +37,7 @@
     <string name="ip_address">Fritz!Box IP-address</string>
     <string name="ip_address_summary">If the connection to the Fritz!Box does not work, try entering the IP address directly (without http://)</string>
     <string name="guest_wifi_active">Guest-WiFi active</string>
+    <string name="ask_version">Which FRITZ!OS version do you use?</string>
+    <string name="version_title">FRITZ!OS version</string>
+    <string name="version_summary">Switch to another FRITZ!OS version</string>
 </resources>

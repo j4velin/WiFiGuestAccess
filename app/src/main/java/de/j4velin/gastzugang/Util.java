@@ -18,10 +18,18 @@ package de.j4velin.gastzugang;
 import android.content.Context;
 import android.util.Base64;
 
+import java.io.BufferedWriter;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -29,7 +37,11 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 
-abstract class Util {
+import de.j4velin.gastzugang.version.FritzOs;
+import de.j4velin.gastzugang.version.FritzOs6;
+import de.j4velin.gastzugang.version.FritzOs7;
+
+public abstract class Util {
 
     static String encrypt(final String value, final Context c) {
         if (value == null) return null;
@@ -84,4 +96,64 @@ abstract class Util {
         }
         return sb.toString();
     }
+
+
+    public static boolean postData(final String requestURL,
+                                   final HashMap<String, String> postDataParams) {
+        URL url;
+        if (BuildConfig.DEBUG)
+            Logger.log("post data to: " + requestURL + " --> " + postDataParams.entrySet());
+        int responseCode = -1;
+        try {
+            url = new URL(requestURL);
+
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setReadTimeout(15000);
+            conn.setConnectTimeout(15000);
+            conn.setRequestMethod("POST");
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+
+            OutputStream os = conn.getOutputStream();
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+            writer.write(getPostDataString(postDataParams));
+
+            writer.flush();
+            writer.close();
+            os.close();
+            responseCode = conn.getResponseCode();
+            if (BuildConfig.DEBUG) Logger.log("response code: " + responseCode);
+        } catch (Exception e) {
+            if (BuildConfig.DEBUG) Logger.log(e);
+        }
+        return responseCode == HttpURLConnection.HTTP_OK;
+    }
+
+    public static String getPostDataString(final HashMap<String, String> params) throws
+            UnsupportedEncodingException {
+        StringBuilder result = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (first) first = false;
+            else result.append("&");
+
+            result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
+            result.append("=");
+            result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+        }
+
+        return result.toString();
+    }
+
+    public static FritzOs fromVersion(int v) {
+        switch (v) {
+            case 6:
+                return new FritzOs6();
+            case 7:
+                return new FritzOs7();
+            default:
+                return null;
+        }
+    }
+
 }

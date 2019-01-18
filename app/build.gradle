@@ -4,7 +4,7 @@ android {
     signingConfigs {
         release
     }
-    compileSdkVersion 23
+    compileSdkVersion 26
     buildToolsVersion "27.0.3"
     flavorDimensions "main"
     defaultConfig {
@@ -14,15 +14,24 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug {
+            debuggable true
+            signingConfig signingConfigs.release
+            zipAlignEnabled true
+            minifyEnabled false
         }
     }
 
     productFlavors {
         play {
             dimension "main"
+            signingConfig signingConfigs.release
         }
         fdroid {
             dimension "main"
+            signingConfig signingConfigs.release
         }
     }
 }
