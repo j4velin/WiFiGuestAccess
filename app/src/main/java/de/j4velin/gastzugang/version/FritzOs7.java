@@ -27,26 +27,33 @@ public class FritzOs7 implements FritzOs {
     public WiFiData readConfig(final String FRITZBOX_ADDRESS, final String SID) throws IOException {
         URL url = new URL("http://" + FRITZBOX_ADDRESS + "/wlan/pp_qrcode.lua?sid=" + SID);
         if (BuildConfig.DEBUG) Logger.log("reading from " + url);
-        BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
-        String line = br.readLine();
+        BufferedReader br = null;
         WiFiData currentConfig = new WiFiData();
-        while (line != null) {
-            if (BuildConfig.DEBUG) Logger.log("  read: " + line);
-            if (line.contains(KEY_SSID)) {
-                String ssid = Html.fromHtml(getValue(line)).toString();
-                if (ssid.endsWith("-OFF")) {
-                    ssid = ssid.substring(0, ssid.length() - 4);
-                    currentConfig.setEnabled(false);
-                } else {
-                    currentConfig.setEnabled(true);
+        try {
+            br = new BufferedReader(new InputStreamReader(url.openStream()));
+            String line = br.readLine();
+            while (line != null) {
+                if (BuildConfig.DEBUG) Logger.log("  read: " + line);
+                if (line.contains(KEY_SSID)) {
+                    String ssid = Html.fromHtml(getValue(line)).toString();
+                    if (ssid.endsWith("-OFF")) {
+                        ssid = ssid.substring(0, ssid.length() - 4);
+                        currentConfig.setEnabled(false);
+                    } else {
+                        currentConfig.setEnabled(true);
+                    }
+                    currentConfig.setSsid(ssid);
+                } else if (line.contains(KEY_PSK)) {
+                    currentConfig.setKey(Html.fromHtml(getValue(line)).toString());
                 }
-                currentConfig.setSsid(ssid);
-            } else if (line.contains(KEY_PSK)) {
-                currentConfig.setKey(Html.fromHtml(getValue(line)).toString());
+                line = br.readLine();
             }
-            line = br.readLine();
+        } catch (Exception e) {
+            if (BuildConfig.DEBUG) Logger.log(e);
+        } finally {
+            if (br != null)
+                br.close();
         }
-        br.close();
         if (currentConfig.key == null || currentConfig.ssid == null) {
             if (BuildConfig.DEBUG) Logger.log(
                     "can not read ssid/key: ssid=" + currentConfig.ssid + ", key=null? " +

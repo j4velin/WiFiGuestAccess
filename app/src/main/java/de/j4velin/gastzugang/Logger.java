@@ -15,7 +15,7 @@ public class Logger {
 
     public static void log(final Throwable ex) {
         if (!BuildConfig.DEBUG) return;
-        log(ex.getMessage());
+        log(ex.getClass().getName() + ": " + ex.getMessage());
         for (StackTraceElement ste : ex.getStackTrace()) {
             log(ste.toString());
         }

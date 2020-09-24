@@ -34,48 +34,55 @@ public class FritzOs6 implements FritzOs {
     public WiFiData readConfig(final String FRITZBOX_ADDRESS, final String SID) throws IOException {
         URL url = new URL("http://" + FRITZBOX_ADDRESS + "/wlan/guest_access.lua?sid=" + SID);
         if (BuildConfig.DEBUG) Logger.log("reading from " + url);
-        BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
-        String line = br.readLine();
         WiFiData currentConfig = new WiFiData();
-        boolean modeLine = false;
-        boolean timeLine = false;
-        while (line != null) {
-            // if (BuildConfig.DEBUG) Logger.log("  read: " + line);
-            if (line.contains(addNameTag(KEY_ACTIVATE))) {
-                currentConfig.setEnabled(line.contains("checked"));
-            } else if (line.contains(addNameTag(KEY_SSID))) {
-                currentConfig.setSsid(line.substring(line.indexOf("value=\"") + 7,
-                        line.indexOf("\"", line.indexOf("value=\"") + 7)));
-            } else if (line.contains(addNameTag(KEY_SEC_MODE))) {
-                modeLine = true;
-            } else if (modeLine && line.contains("<option value=") &&
-                    line.contains("selected=\"selected\"")) {
-                currentConfig.setMode(Integer.parseInt(line.substring(line.indexOf("\"") + 1,
-                        line.indexOf("\"", line.indexOf("\"") + 1))));
-            } else if (modeLine && line.contains("</select>")) {
-                modeLine = false;
-            } else if (line.contains(addNameTag(KEY_PASSWORD))) {
-                currentConfig.setKey(line.substring(line.indexOf("value=\"") + 7,
-                        line.indexOf("\"", line.indexOf("value=\"") + 7)));
-            } else if (line.contains(addNameTag(KEY_AUTODISABLE))) {
-                currentConfig.setAutoDisable(line.contains("checked"));
-            } else if (line.contains(addNameTag(KEY_AUTODISABLE_NOCON))) {
-                currentConfig.setAutoDisableNoConnection(line.contains("checked"));
-            } else if (line.contains(addNameTag(KEY_AUTODISABLE_TIME))) {
-                timeLine = true;
-            } else if (timeLine && line.contains("<option value=") &&
-                    line.contains("selected=\"selected\"")) {
-                currentConfig.setAutoDisableTime(Integer.parseInt(
-                        line.substring(line.indexOf("\"") + 1,
-                                line.indexOf("\"", line.indexOf("\"") + 1))));
-            } else if (timeLine && line.contains("</select>")) {
-                timeLine = false;
-            } else if (line.contains(addNameTag(KEY_PROTOCOL))) {
-                currentConfig.setProtocol(line.contains("checked"));
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new InputStreamReader(url.openStream()));
+            String line = br.readLine();
+            boolean modeLine = false;
+            boolean timeLine = false;
+            while (line != null) {
+                if (BuildConfig.DEBUG) Logger.log("  read: " + line);
+                if (line.contains(addNameTag(KEY_ACTIVATE))) {
+                    currentConfig.setEnabled(line.contains("checked"));
+                } else if (line.contains(addNameTag(KEY_SSID))) {
+                    currentConfig.setSsid(line.substring(line.indexOf("value=\"") + 7,
+                            line.indexOf("\"", line.indexOf("value=\"") + 7)));
+                } else if (line.contains(addNameTag(KEY_SEC_MODE))) {
+                    modeLine = true;
+                } else if (modeLine && line.contains("<option value=") &&
+                        line.contains("selected=\"selected\"")) {
+                    currentConfig.setMode(Integer.parseInt(line.substring(line.indexOf("\"") + 1,
+                            line.indexOf("\"", line.indexOf("\"") + 1))));
+                } else if (modeLine && line.contains("</select>")) {
+                    modeLine = false;
+                } else if (line.contains(addNameTag(KEY_PASSWORD))) {
+                    currentConfig.setKey(line.substring(line.indexOf("value=\"") + 7,
+                            line.indexOf("\"", line.indexOf("value=\"") + 7)));
+                } else if (line.contains(addNameTag(KEY_AUTODISABLE))) {
+                    currentConfig.setAutoDisable(line.contains("checked"));
+                } else if (line.contains(addNameTag(KEY_AUTODISABLE_NOCON))) {
+                    currentConfig.setAutoDisableNoConnection(line.contains("checked"));
+                } else if (line.contains(addNameTag(KEY_AUTODISABLE_TIME))) {
+                    timeLine = true;
+                } else if (timeLine && line.contains("<option value=") &&
+                        line.contains("selected=\"selected\"")) {
+                    currentConfig.setAutoDisableTime(Integer.parseInt(
+                            line.substring(line.indexOf("\"") + 1,
+                                    line.indexOf("\"", line.indexOf("\"") + 1))));
+                } else if (timeLine && line.contains("</select>")) {
+                    timeLine = false;
+                } else if (line.contains(addNameTag(KEY_PROTOCOL))) {
+                    currentConfig.setProtocol(line.contains("checked"));
+                }
+                line = br.readLine();
             }
-            line = br.readLine();
+        } catch (Exception e) {
+            if (BuildConfig.DEBUG) Logger.log(e);
+        } finally {
+            if (br != null)
+                br.close();
         }
-        br.close();
         if (currentConfig.key == null || currentConfig.ssid == null) {
             if (BuildConfig.DEBUG) Logger.log(
                     "can not read ssid/key: ssid=" + currentConfig.ssid + ", key=null? " +
